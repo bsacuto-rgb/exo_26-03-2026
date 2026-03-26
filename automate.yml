@@ -1,0 +1,35 @@
+name: ETL_Automate_AWS
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  run_etl:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run ETL Script
+        env:
+          # On fait le lien entre tes secrets GitHub et ton script
+          DB_HOST: ${{ secrets.PG_HOST }}
+          DB_USER: ${{ secrets.PG_USER }}
+          DB_PASSWORD: ${{ secrets.PG_PASSWORD }}
+          DB_NAME: ${{ secrets.PG_DB }}
+          DB_PORT: ${{ secrets.PG_PORT }}
+          # Les infos Google Sheets
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          WORKSHEET: ${{ secrets.WORKSHEET }}
+          # Ton gros JSON
+          GOOGLE_JSON: ${{ secrets.GOOGLE_SA_KEY_JSON }}
+        run: python etl.py
