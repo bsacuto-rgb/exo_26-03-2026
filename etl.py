@@ -29,6 +29,9 @@ from google.oauth2.service_account import Credentials
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 
+from dotenv import load_dotenv
+load_dotenv()  # Cela charge les variables de ton fichier .env
+
 # ─── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
@@ -106,30 +109,35 @@ def load_dataframe(
 
 # ─── Main orchestrator ────────────────────────────────────────────────────────
 def main() -> None:
-    sheet_id = env("SHEET_ID")
-    worksheet = env("WORKSHEET")
-    sa_json = env("GOOGLE_SA_KEY_JSON")
-
-    pg_user = env("PG_USER")
-    pg_password = env("PG_PASSWORD")
-    pg_host = env("PG_HOST")
-    pg_port = env("PG_PORT")
-    pg_db = env("PG_DB")
-    pg_table = env("PG_TABLE")
-    pg_if_exists = "replace"
-    pg_chunksize_str = "1000"
-
     try:
-        pg_chunksize = int(pg_chunksize_str) if pg_chunksize_str else None
-    except ValueError:
-        raise RuntimeError("PG_CHUNKSIZE must be an integer or empty.")
+        # On récupère TOUT via la fonction env()
+        sheet_id = env("SHEET_ID")
+        worksheet = env("WORKSHEET", "Feuille 1")
+        sa_json = env("GOOGLE_SA_KEY_JSON")
 
-    # Extract
-    df = read_worksheet(sheet_id, worksheet, sa_json)
+        pg_user = env("PG_USER")
+        pg_password = env("PG_PASSWORD")
+        pg_host = env("PG_HOST")
+        pg_port = env("PG_PORT")
+        pg_db = env("PG_DB")
+        pg_table = env("PG_TABLE")
+        
+        pg_if_exists = "replace"
+        pg_chunksize = 1000
 
-    # Load
-    engine = get_engine(build_pg_url(pg_user, pg_password, pg_host, pg_port, pg_db))
-    load_dataframe(df, engine, pg_table, if_exists=pg_if_exists, chunksize=pg_chunksize)
+        # --- EXECUTION ---
+        # Extract
+        df = read_worksheet(sheet_id, worksheet, sa_json)
+
+        # Load
+        engine = get_engine(build_pg_url(pg_user, pg_password, pg_host, pg_port, pg_db))
+        load_dataframe(df, engine, pg_table, if_exists=pg_if_exists, chunksize=pg_chunksize)
+        
+        print("BINGO ! Le pipeline sécurisé a fonctionné !")
+        
+    except Exception as e:
+        logger.error("Le pipeline a échoué.")
+        print(f"ERREUR : {e}")
 
 if __name__ == "__main__":
     main()
